@@ -2,10 +2,10 @@
   "name": "lawyer-calculator-server",
   "version": "1.0.0",
   "description": "Lawyer Calculator Server",
-  "main": "dist/index.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node dist/index.js",
-    "dev": "cross-env NODE_ENV=development nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "start": "node api/index.js",
+    "dev": "nodemon --watch api --ext ts --exec ts-node api/index.ts",
     "build": "tsc"
   },
   "dependencies": {
@@ -17,7 +17,6 @@
     "@types/node": "^18.11.9",
     "typescript": "^4.8.4",
     "ts-node": "^10.9.1",
-    "nodemon": "^2.0.20",
-    "cross-env": "^7.0.3"
+    "nodemon": "^2.0.20"
   }
 }
