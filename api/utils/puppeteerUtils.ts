@@ -11,10 +11,16 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
   let browser: Browser | null = null;
   try {
     browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
-      ignoreHTTPSErrors: true,
-      executablePath: '/usr/bin/chromium' // Dodaj tę linię
+      args: [
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--single-process",
+        "--no-zygote",
+      ],
+      executablePath:
+        process.env.NODE_ENV === "production"
+          ? process.env.PUPPETEER_EXECUTABLE_PATH
+          : puppeteer.executablePath(),
     });
     const page: Page = await browser.newPage();
     await page.goto(WIBOR_URL, { waitUntil: 'networkidle2' });
