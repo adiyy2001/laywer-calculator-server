@@ -1,4 +1,5 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer-core';
+import { executablePath } from 'puppeteer';
 import { WIBOR_URL } from '../config';
 
 export interface Rates {
@@ -10,7 +11,11 @@ export interface Rates {
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
   try {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: executablePath(), // Użyj wbudowanego Chromium na Vercel
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page: Page = await browser.newPage();
     await page.goto(WIBOR_URL, { waitUntil: 'networkidle2' });
 
