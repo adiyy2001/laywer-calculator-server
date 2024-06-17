@@ -1,5 +1,6 @@
-import puppeteer, { Browser, Page } from 'puppeteer-core';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import { WIBOR_URL } from '../config';
+import pLimit from 'p-limit';
 
 export interface Rates {
   date: string;
@@ -10,35 +11,44 @@ export interface Rates {
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
   try {
-    browser = await puppeteer.launch({
+    console.log('Launching browser...');
+    browser =  process.env.NODE_ENV  === "production" ? await puppeteer.launch({
       args: [
-        "--disable-setuid-sandbox",
-        "--no-sandbox",
-        "--single-process",
-        "--no-zygote",
+        '--disable-setuid-sandbox',
+        '--no-sandbox',
+        '--single-process',
+        '--no-zygote',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
       ],
-      executablePath:
-        process.env.NODE_ENV === "production"
-          ? process.env.PUPPETEER_EXECUTABLE_PATH
-          : puppeteer.executablePath(),
+      headless: true 
+    }) : await puppeteer.launch({
+      headless: true
     });
-    const page: Page = await browser.newPage();
-    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2' });
 
-    const startDate: Date = new Date(startDateString);
-    const endDate: Date = new Date();
+    const startDate = new Date(startDateString);
+    const endDate = new Date();
     const ratesList: Rates[] = [];
+    const datesToFetch = getBusinessDates(startDate, endDate);
 
-    const datesToFetch: string[] = getBusinessDates(startDate, endDate);
+    const limit = pLimit(20); // Ustal limit równoczesnych zapytań
 
-    const ratePromises: Promise<Rates | null>[] = datesToFetch.map((date) => getRatesForDate(page, date));
-    const ratesResults: (Rates | null)[] = await Promise.all(ratePromises);
-
-    ratesResults.forEach((rates) => {
-      if (rates) {
-        ratesList.push(rates);
+    const ratePromises = datesToFetch.map((date) => limit(async () => {
+      const page = await browser!.newPage();
+      try {
+        const rates = await getRatesForDate(page, date);
+        if (rates) {
+          ratesList.push(rates);
+        }
+      } catch (error) {
+        console.error(`Error fetching rates for date ${date}:`, error);
+      } finally {
+        await page.close();
       }
-    });
+    }));
+
+    await Promise.all(ratePromises);
 
     return ratesList;
   } catch (error) {
@@ -46,15 +56,18 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     throw error;
   } finally {
     if (browser) {
+      console.log('Closing browser...');
       await browser.close();
     }
   }
 };
 
 const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> => {
-  console.log(`Fetching rates for date: ${date}`);
-
   try {
+    console.log(`Navigating to WIBOR page for date: ${date}...`);
+    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+
+    console.log(`Setting date: ${date}...`);
     await page.evaluate((date: string) => {
       const dateInput: HTMLInputElement | null = document.querySelector('#rateDate');
       const submitButton: HTMLInputElement | null = document.querySelector('#rateDatePickerSubmit');
@@ -67,26 +80,32 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
       }
     }, date);
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
-    
-    await page.waitForSelector('.summaryTable', { timeout: 10000 });
+    console.log(`Waiting for navigation...`);
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
 
-    const rates: Rates | null = await page.evaluate((date: string): Rates | null => {
-      const rows: NodeListOf<HTMLTableRowElement> = document.querySelectorAll('.summaryTable tr');
+    console.log('Waiting for summary table...');
+    await page.waitForSelector('.summaryTable', { timeout: 60000 });
+
+    console.log('Extracting rates...');
+    const rates = await page.evaluate((date: string): Rates | null => {
+      const rows = document.querySelectorAll('.summaryTable tr');
       let wibor3m = '';
       let wibor6m = '';
 
-      rows.forEach((row: HTMLTableRowElement) => {
-        const cells: NodeListOf<HTMLTableCellElement> = row.querySelectorAll('td');
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll('td');
         if (cells.length > 1) {
-          const label: string = cells[0].textContent?.trim() || '';
-          const value: string = cells[1].textContent?.trim() || '';
-          const cleanedValue: string = value.split('\n')[0].trim();
-          if (label === 'WIBOR 3M') {
-            wibor3m = cleanedValue;
+          const label = cells[0].textContent?.trim() || '';
+          let value = cells[1].textContent?.trim() || '';
+
+          // Usunięcie zmian wartości
+          value = value.split('\n')[0].trim();
+
+          if (label.includes('WIBOR 3M')) {
+            wibor3m = value;
           }
-          if (label === 'WIBOR 6M') {
-            wibor6m = cleanedValue;
+          if (label.includes('WIBOR 6M')) {
+            wibor6m = value;
           }
         }
       });
@@ -97,18 +116,18 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
     console.log(`Fetched rates for date: ${date} - 3M: ${rates?.wibor3m}, 6M: ${rates?.wibor6m}`);
     return rates;
   } catch (error) {
-    console.error(`Error fetching rates for date: ${date}`, error);
+    console.error(`Error fetching rates for date ${date}:`, error);
     return null;
   }
 };
 
 const getBusinessDates = (startDate: Date, endDate: Date): string[] => {
   const dates: string[] = [];
-  const currentDate: Date = new Date(startDate);
+  const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    const day: number = currentDate.getDay();
-    if (day !== 0 && day !== 6) {
+    const day = currentDate.getDay();
+    if (day !== 0 && day !== 6) { // Pomijanie weekendów
       dates.push(currentDate.toISOString().split('T')[0]);
     }
     currentDate.setDate(currentDate.getDate() + 1);

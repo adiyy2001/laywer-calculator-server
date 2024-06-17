@@ -1,0 +1,11 @@
+# Node modules directory
+**/node_modules/
+# Ignore log files
+*.log
+# Directory for local development builds
+dist
+# Temporary files and directories
+tmp
+temp
+# OS-generated files
+.DS
