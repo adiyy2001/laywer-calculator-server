@@ -32,7 +32,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     const ratesList: Rates[] = [];
     const datesToFetch = getBusinessDates(startDate, endDate);
 
-    const limit = pLimit(20); // Ustal limit równoczesnych zapytań
+    const limit = pLimit(10); // Ustal limit równoczesnych zapytań
 
     const ratePromises = datesToFetch.map((date) => limit(async () => {
       const page = await browser!.newPage();
