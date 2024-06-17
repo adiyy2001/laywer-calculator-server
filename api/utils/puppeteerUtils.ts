@@ -24,7 +24,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
         '--disable-accelerated-2d-canvas',
         '--disable-gpu'
       ],
-      headless: "new",
+      headless: true,
       timeout: protocolTimeout, // Zwiększenie timeoutu dla uruchomienia przeglądarki
       defaultViewport: null
     }) : await puppeteer.launch({
