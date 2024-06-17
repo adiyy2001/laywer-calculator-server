@@ -5,3 +5,5 @@ node_modules/
 .env
 
 # Other files you want to ignore
+
+.vercel
