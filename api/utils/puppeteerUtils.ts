@@ -14,6 +14,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       headless: true,
       ignoreHTTPSErrors: true,
+      executablePath: '/usr/bin/chromium' // Dodaj tę linię
     });
     const page: Page = await browser.newPage();
     await page.goto(WIBOR_URL, { waitUntil: 'networkidle2' });
