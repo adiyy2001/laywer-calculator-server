@@ -16,10 +16,10 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       args: [
         '--disable-setuid-sandbox',
         '--no-sandbox',
-        '--single-process',
-        '--no-zygote',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
+        // '--single-process',
+        // '--no-zygote',
+        // '--disable-dev-shm-usage',
+        // '--disable-accelerated-2d-canvas',
         '--disable-gpu'
       ],
       headless: true 
