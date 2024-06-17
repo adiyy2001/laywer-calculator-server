@@ -1,11 +1,27 @@
+# Use Puppeteer image version 19.7.2 as base image
 FROM ghcr.io/puppeteer/puppeteer:19.7.2
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+# Set environment variables
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
+# Set working directory
 WORKDIR /usr/src/app
 
+# Copy package.json and package-lock.json
 COPY package*.json ./
-RUN npm ci
+
+# Install dependencies
+RUN npm install --only=prod
+
+# Copy the rest of the application code
 COPY . .
-CMD [ "node", "index.js" ]
+
+# Build TypeScript
+RUN npm run build
+
+# Expose necessary ports if needed
+# EXPOSE 3000
+
+# Command to run the application
+CMD [ "npm", "start" ]
