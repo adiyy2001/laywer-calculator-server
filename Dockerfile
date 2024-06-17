@@ -11,6 +11,12 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
+# Change ownership to non-root user
+RUN chown -R pptruser:pptruser /usr/src/app
+
+# Switch to pptruser to run npm install
+USER pptruser
+
 # Install dependencies
 RUN npm install --only=prod
 
