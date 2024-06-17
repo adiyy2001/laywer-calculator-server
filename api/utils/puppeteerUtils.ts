@@ -13,9 +13,9 @@ const protocolTimeout = 300000; // Ustal timeout protokołu na 300 sekund (5 min
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
   try {
-    console.log('Launching browser...');
-    browser = process.env.NODE_ENV === 'production' ? await puppeteer.launch({
-      args: [
+    console.log('Launching browser...', process.env.NODE_ENV);
+    browser = await puppeteer.launch({
+      args: process.env.NODE_ENV === 'production' ? [
         '--disable-setuid-sandbox',
         '--no-sandbox',
         '--single-process',
@@ -23,13 +23,9 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu'
-      ],
+      ] : [],
       headless: true,
-      timeout: protocolTimeout, // Zwiększenie timeoutu dla uruchomienia przeglądarki
-      defaultViewport: null
-    }) : await puppeteer.launch({
-      headless: true,
-      timeout: protocolTimeout, // Zwiększenie timeoutu dla uruchomienia przeglądarki
+      timeout: protocolTimeout,
       defaultViewport: null
     });
 
@@ -40,7 +36,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
 
     const limit = pLimit(5); // Ustal limit równoczesnych zapytań
 
-    const ratePromises = datesToFetch.map((date) => limit(async () => {
+    const ratePromises = datesToFetch.map(date => limit(async () => {
       await retry(async () => {
         const page = await browser!.newPage();
         try {
@@ -74,7 +70,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
 const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> => {
   try {
     console.log(`Navigating to WIBOR page for date: ${date}...`);
-    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2', timeout: 10000 });
 
     console.log(`Setting date: ${date}...`);
     await page.evaluate((date: string) => {
@@ -90,14 +86,16 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
     }, date);
 
     console.log(`Waiting for navigation...`);
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 });
 
-    console.log('Waiting for summary table...');
-    await page.waitForSelector('.summaryTable', { timeout: 60000 });
-
-    console.log('Extracting rates...');
     const rates = await page.evaluate((date: string): Rates | null => {
-      const rows = document.querySelectorAll('.summaryTable tr');
+      const summaryTable = document.querySelector('.summaryTable');
+      if (!summaryTable) {
+        console.log(`No summary table found for date: ${date}`);
+        return null;
+      }
+
+      const rows = summaryTable.querySelectorAll('tr');
       let wibor3m = '';
       let wibor6m = '';
 
