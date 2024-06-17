@@ -8,23 +8,29 @@ export interface Rates {
   wibor6m: string;
 }
 
+const protocolTimeout = 300000; // Ustal timeout protokołu na 300 sekund (5 minut)
+
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
   try {
     console.log('Launching browser...');
-    browser =  process.env.NODE_ENV  === "production" ? await puppeteer.launch({
+    browser = process.env.NODE_ENV === 'production' ? await puppeteer.launch({
       args: [
         '--disable-setuid-sandbox',
         '--no-sandbox',
-        // '--single-process',
-        // '--no-zygote',
-        // '--disable-dev-shm-usage',
-        // '--disable-accelerated-2d-canvas',
+        '--single-process',
+        '--no-zygote',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
         '--disable-gpu'
       ],
-      headless: true 
+      headless: true,
+      timeout: protocolTimeout, // Zwiększenie timeoutu dla uruchomienia przeglądarki
+      defaultViewport: null
     }) : await puppeteer.launch({
-      headless: true
+      headless: true,
+      timeout: protocolTimeout, // Zwiększenie timeoutu dla uruchomienia przeglądarki
+      defaultViewport: null
     });
 
     const startDate = new Date(startDateString);
@@ -32,20 +38,23 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     const ratesList: Rates[] = [];
     const datesToFetch = getBusinessDates(startDate, endDate);
 
-    const limit = pLimit(10); // Ustal limit równoczesnych zapytań
+    const limit = pLimit(5); // Ustal limit równoczesnych zapytań
 
     const ratePromises = datesToFetch.map((date) => limit(async () => {
-      const page = await browser!.newPage();
-      try {
-        const rates = await getRatesForDate(page, date);
-        if (rates) {
-          ratesList.push(rates);
+      await retry(async () => {
+        const page = await browser!.newPage();
+        try {
+          const rates = await getRatesForDate(page, date);
+          if (rates && rates.wibor3m && rates.wibor6m) {
+            ratesList.push(rates);
+          }
+        } catch (error) {
+          console.error(`Error fetching rates for date ${date}:`, error);
+          throw error; // Ponowienie próby w przypadku błędu
+        } finally {
+          await page.close();
         }
-      } catch (error) {
-        console.error(`Error fetching rates for date ${date}:`, error);
-      } finally {
-        await page.close();
-      }
+      }, 3, 5000); // Ponów próbę do 3 razy z odstępem 5 sekund
     }));
 
     await Promise.all(ratePromises);
@@ -134,4 +143,20 @@ const getBusinessDates = (startDate: Date, endDate: Date): string[] => {
   }
 
   return dates;
+};
+
+const retry = async (fn: () => Promise<void>, retries: number, delay: number) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fn();
+      return;
+    } catch (error) {
+      if (i < retries - 1) {
+        console.error(`Retry ${i + 1} failed. Retrying in ${delay} ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
 };
