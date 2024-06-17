@@ -1,4 +1,5 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { WIBOR_URL } from '../config';
 
 export interface Rates {
@@ -11,8 +12,11 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
   let browser: Browser | null = null;
   try {
     browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
     });
     const page: Page = await browser.newPage();
     await page.goto(WIBOR_URL, { waitUntil: 'networkidle2' });
