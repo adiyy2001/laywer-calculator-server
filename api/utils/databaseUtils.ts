@@ -1,0 +1,43 @@
+import { createPool, Pool } from 'mysql2/promise';
+
+let pool: Pool;
+
+export const initDatabase = async () => {
+  pool = await createPool({
+    host: 'mysql',
+    user: 'root',
+    password: 'rootpassword',
+    database: 'wibor',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      date DATE NOT NULL,
+      wibor3m text,
+      wibor6m text
+    )
+  `);
+};
+
+export const saveRatesToDatabase = async (rates: { date: string; wibor3m: string; wibor6m: string }[]) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    for (const rate of rates) {
+      await connection.query(
+        'INSERT INTO rates (date, wibor3m, wibor6m) VALUES (?, ?, ?)',
+        [rate.date, rate.wibor3m, rate.wibor6m]
+      );
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};

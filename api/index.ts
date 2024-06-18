@@ -4,6 +4,7 @@ import { wiborRouter } from './routes/wiborRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from 'dotenv';
 import http from 'http';
+import { initDatabase } from './utils/databaseUtils';
 
 config();
 
@@ -16,26 +17,33 @@ app.use(cors());
 // Middleware do parsowania JSON
 app.use(express.json());
 
-// Router dla WIBOR
-app.use('/api', wiborRouter);
+// Inicjalizacja bazy danych
+initDatabase().then(() => {
+  console.log('Database initialized');
 
-// Testowy endpoint do sprawdzenia
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Test endpoint is working!' });
-});
+  // Router dla WIBOR
+  app.use('/api', wiborRouter);
 
-// Middleware do obsługi błędów
-app.use(errorHandler);
+  // Testowy endpoint do sprawdzenia
+  app.get('/api/test', (req, res) => {
+    res.json({ message: 'Test endpoint is working!' });
+  });
 
-// Usunięcie nagłówków wymuszających HTTPS
-app.use((req, res, next) => {
-  res.removeHeader('Strict-Transport-Security');
-  next();
-});
+  // Middleware do obsługi błędów
+  app.use(errorHandler);
 
-// Uruchomienie serwera HTTP
-const server = http.createServer(app);
+  // Usunięcie nagłówków wymuszających HTTPS
+  app.use((req, res, next) => {
+    res.removeHeader('Strict-Transport-Security');
+    next();
+  });
 
-server.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  // Uruchomienie serwera HTTP
+  const server = http.createServer(app);
+
+  server.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}).catch(error => {
+  console.error('Failed to initialize database:', error);
 });
