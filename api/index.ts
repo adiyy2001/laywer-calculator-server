@@ -47,7 +47,7 @@ initDatabase().then(() => {
 
     // Odpytanie endpointu po uruchomieniu serwera
     try {
-      const response = await axios.get('laywer-calculator-server-production.up.railway.app/api/fetch-wibor-rates');
+      const response = await axios.get('http://laywer-calculator-server-production.up.railway.app/api/fetch-wibor-rates');
       console.log('Fetched WIBOR rates:', response.data);
     } catch (error) {
       console.error('Failed to fetch WIBOR rates:', error);
