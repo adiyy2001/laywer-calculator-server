@@ -29,8 +29,8 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       defaultViewport: null
     });
 
-    const latestRate = await getLatestRate();
-    let startDate = latestRate ? new Date(latestRate.date) : new Date(startDateString);
+    // const latestRate = await getLatestRate();
+    let startDate =  new Date(startDateString);
 
     // Sprawdź, czy data początkowa to piątek
     if (startDate.getDay() === 5) {
