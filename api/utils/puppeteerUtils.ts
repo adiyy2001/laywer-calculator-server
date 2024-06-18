@@ -15,7 +15,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
   try {
     console.log('Launching browser...', process.env.NODE_ENV);
     browser = await puppeteer.launch({
-      args: process.env.NODE_ENV === 'production' ? [
+      args:  [
         '--disable-setuid-sandbox',
         '--no-sandbox',
         '--single-process',
@@ -23,7 +23,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu'
-      ] : [],
+      ],
       headless: true,
       timeout: protocolTimeout,
       defaultViewport: null
