@@ -37,20 +37,18 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     const limit = pLimit(5); // Ustal limit równoczesnych zapytań
 
     const ratePromises = datesToFetch.map(date => limit(async () => {
-      await retry(async () => {
-        const page = await browser!.newPage();
-        try {
-          const rates = await getRatesForDate(page, date);
-          if (rates && rates.wibor3m && rates.wibor6m) {
-            ratesList.push(rates);
-          }
-        } catch (error) {
-          console.error(`Error fetching rates for date ${date}:`, error);
-          throw error; // Ponowienie próby w przypadku błędu
-        } finally {
-          await page.close();
+      const page = await browser!.newPage();
+      try {
+        const rates = await getRatesForDate(page, date);
+        if (rates && rates.wibor3m && rates.wibor6m) {
+          ratesList.push(rates);
         }
-      }, 3, 5000); // Ponów próbę do 3 razy z odstępem 5 sekund
+      } catch (error) {
+        console.error(`Error fetching rates for date ${date}:`, error);
+        throw error;
+      } finally {
+        await page.close();
+      }
     }));
 
     await Promise.all(ratePromises);
@@ -63,6 +61,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     if (browser) {
       console.log('Closing browser...');
       await browser.close();
+      console.log('Closed browser...');
     }
   }
 };
@@ -141,20 +140,4 @@ const getBusinessDates = (startDate: Date, endDate: Date): string[] => {
   }
 
   return dates;
-};
-
-const retry = async (fn: () => Promise<void>, retries: number, delay: number) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await fn();
-      return;
-    } catch (error) {
-      if (i < retries - 1) {
-        console.error(`Retry ${i + 1} failed. Retrying in ${delay} ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
 };
