@@ -4,14 +4,12 @@ let pool: Pool;
 
 export const initDatabase = async () => {
   pool = await createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'rootpassword',
-    database: process.env.DB_NAME || 'wibor',
-    port: parseInt(String(process.env.DB_PORT), 10) || 3306,
+    host: 'https://roundhouse.proxy.rlwy.net/',
+    user: 'root',
+    password: 'OXhKSPlISeQkFbHEYhQlXxKPugTZnxia',
+    database: 'railway',
+    port: 50560,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
   });
 
   await pool.query(`
