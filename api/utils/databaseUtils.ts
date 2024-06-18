@@ -8,10 +8,10 @@ export const initDatabase = async () => {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || 'rootpassword',
     database: process.env.DB_NAME || 'wibor',
+    port: parseInt(String(process.env.DB_PORT), 10) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
-
   });
 
   await pool.query(`

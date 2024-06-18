@@ -48,10 +48,6 @@ RUN npm install
 # Copy application code
 COPY . .
 
-# Copy wait-for-it script
-COPY wait-for-it.sh /usr/src/app/wait-for-it.sh
-RUN chmod +x /usr/src/app/wait-for-it.sh
-
 # Build TypeScript
 RUN npm run build
 
@@ -59,4 +55,4 @@ RUN npm run build
 EXPOSE 3001
 
 # Command to run the application
-CMD ["./wait-for-it.sh", "mysql", "3306", "--", "node", "dist/index.js"]
+CMD ["node", "dist/index.js"]
