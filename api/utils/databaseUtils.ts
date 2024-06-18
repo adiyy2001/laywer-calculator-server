@@ -1,4 +1,4 @@
-import { createPool, Pool } from 'mysql2/promise';
+import { createPool, Pool, RowDataPacket } from 'mysql2/promise';
 
 let pool: Pool;
 
@@ -44,4 +44,10 @@ export const saveRatesToDatabase = async (rates: { date: string; wibor3m: string
 export const getAllRates = async () => {
   const [rows] = await pool.query('SELECT * FROM rates');
   return rows;
+};
+
+
+export const getLatestRate = async () => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM rates ORDER BY date DESC LIMIT 1');
+  return rows.length ? rows[0] : null;
 };

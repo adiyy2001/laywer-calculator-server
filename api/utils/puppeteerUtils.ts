@@ -1,6 +1,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { WIBOR_URL } from '../config';
 import pLimit from 'p-limit';
+import { getLatestRate } from './databaseUtils';
 
 export interface Rates {
   date: string;
@@ -29,7 +30,14 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       defaultViewport: null
     });
 
-    const startDate = new Date(startDateString);
+    const latestRate = await getLatestRate();
+    let startDate = latestRate ? new Date(latestRate.date) : new Date(startDateString);
+
+    // Sprawdź, czy data początkowa to piątek
+    if (startDate.getDay() === 5) {
+      startDate = getNextBusinessDay(startDate);
+    }
+
     const endDate = new Date();
     const ratesList: Rates[] = [];
     const datesToFetch = getBusinessDates(startDate, endDate);
@@ -64,6 +72,12 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       console.log('Closed browser...');
     }
   }
+};
+
+const getNextBusinessDay = (date: Date): Date => {
+  const nextDay = new Date(date);
+  nextDay.setDate(date.getDate() + (date.getDay() === 5 ? 3 : 1));
+  return nextDay;
 };
 
 const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> => {
