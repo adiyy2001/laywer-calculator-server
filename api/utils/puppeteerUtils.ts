@@ -1,6 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { WIBOR_URL } from '../config';
-import pLimit from 'p-limit';
 import { getLatestRate } from './databaseUtils';
 
 export interface Rates {
@@ -9,14 +8,14 @@ export interface Rates {
   wibor6m: string;
 }
 
-const protocolTimeout = 300000; // Ustal timeout protokołu na 300 sekund (5 minut)
+const protocolTimeout = 3000000; // Ustal timeout protokołu na 300 sekund (5 minut)
 
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
   try {
     console.log('Launching browser...', process.env.NODE_ENV);
     browser = await puppeteer.launch({
-      args:  [
+      args: [
         '--disable-setuid-sandbox',
         '--no-sandbox',
         '--single-process',
@@ -30,9 +29,8 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       defaultViewport: null
     });
 
-    // const latestRate = await getLatestRate();
-    // let startDate = latestRate ? new Date(latestRate.date) : new Date(startDateString);
-    let startDate = new Date(startDateString);
+    const latestRate = await getLatestRate();
+    let startDate = latestRate ? new Date(latestRate.date) : new Date(startDateString);
 
     // Sprawdź, czy data początkowa to piątek
     if (startDate.getDay() === 5) {
@@ -43,10 +41,8 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     const ratesList: Rates[] = [];
     const datesToFetch = getBusinessDates(startDate, endDate);
 
-    const limit = pLimit(5); // Ustal limit równoczesnych zapytań
-
-    const ratePromises = datesToFetch.map(date => limit(async () => {
-      const page = await browser!.newPage();
+    for (const date of datesToFetch) {
+      const page = await browser.newPage();
       try {
         const rates = await getRatesForDate(page, date);
         if (rates && rates.wibor3m && rates.wibor6m) {
@@ -54,13 +50,10 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
         }
       } catch (error) {
         console.error(`Error fetching rates for date ${date}:`, error);
-        throw error;
       } finally {
         await page.close();
       }
-    }));
-
-    await Promise.all(ratePromises);
+    }
 
     return ratesList;
   } catch (error) {
