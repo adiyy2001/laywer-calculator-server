@@ -1,6 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { WIBOR_URL } from '../config';
-import { getLatestRate } from './databaseUtils';
 
 export interface Rates {
   date: string;
@@ -8,7 +7,7 @@ export interface Rates {
   wibor6m: string;
 }
 
-const protocolTimeout = 3000000; // Ustal timeout protokołu na 300 sekund (5 minut)
+const protocolTimeout = 30000; // Ustal timeout protokołu na 300 sekund (5 minut)
 
 export const fetchWiborRates = async (startDateString: string): Promise<Rates[]> => {
   let browser: Browser | null = null;
@@ -29,10 +28,7 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
       defaultViewport: null
     });
 
-    // const latestRate = await getLatestRate();
-    let startDate =  new Date(startDateString);
-
-    // Sprawdź, czy data początkowa to piątek
+    let startDate = new Date(startDateString);
     if (startDate.getDay() === 5) {
       startDate = getNextBusinessDay(startDate);
     }
@@ -41,8 +37,12 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
     const ratesList: Rates[] = [];
     const datesToFetch = getBusinessDates(startDate, endDate);
 
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
+
+    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+
     for (const date of datesToFetch) {
-      const page = await browser.newPage();
       try {
         const rates = await getRatesForDate(page, date);
         if (rates && rates.wibor3m && rates.wibor6m) {
@@ -50,11 +50,10 @@ export const fetchWiborRates = async (startDateString: string): Promise<Rates[]>
         }
       } catch (error) {
         console.error(`Error fetching rates for date ${date}:`, error);
-      } finally {
-        await page.close();
       }
     }
 
+    await page.close();
     return ratesList;
   } catch (error) {
     console.error('Error fetching WIBOR rates:', error);
@@ -76,9 +75,6 @@ const getNextBusinessDay = (date: Date): Date => {
 
 const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> => {
   try {
-    console.log(`Navigating to WIBOR page for date: ${date}...`);
-    await page.goto(WIBOR_URL, { waitUntil: 'networkidle2', timeout: 10000 });
-
     console.log(`Setting date: ${date}...`);
     await page.evaluate((date: string) => {
       const dateInput: HTMLInputElement | null = document.querySelector('#rateDate');
@@ -92,8 +88,8 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
       }
     }, date);
 
-    console.log(`Waiting for navigation...`);
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 });
+    console.log(`Waiting for results...`);
+    await page.waitForSelector('.summaryTable', { timeout: 10000 });
 
     const rates = await page.evaluate((date: string): Rates | null => {
       const summaryTable = document.querySelector('.summaryTable');
@@ -130,7 +126,7 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
     console.log(`Fetched rates for date: ${date} - 3M: ${rates?.wibor3m}, 6M: ${rates?.wibor6m}`);
     return rates;
   } catch (error: any) {
-    if (error.message.includes('Page.addScriptToEvaluateOnNewDocument timed out')) {
+    if (error.message.includes('Timeout')) {
       console.warn(`Timeout error occurred but skipped for date: ${date}`);
       return null;
     }
