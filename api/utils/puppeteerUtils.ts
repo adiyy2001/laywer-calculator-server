@@ -121,7 +121,11 @@ const getRatesForDate = async (page: Page, date: string): Promise<Rates | null> 
 
     console.log(`Fetched rates for date: ${date} - 3M: ${rates?.wibor3m}, 6M: ${rates?.wibor6m}`);
     return rates;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message.includes('Page.addScriptToEvaluateOnNewDocument timed out')) {
+      console.warn(`Timeout error occurred but skipped for date: ${date}`);
+      return null;
+    }
     console.error(`Error fetching rates for date ${date}:`, error);
     return null;
   }
