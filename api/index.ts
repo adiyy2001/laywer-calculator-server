@@ -3,6 +3,7 @@ import cors from 'cors';
 import { wiborRouter } from './routes/wiborRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from 'dotenv';
+import http from 'http';
 
 config();
 
@@ -26,7 +27,15 @@ app.get('/api/test', (req, res) => {
 // Middleware do obsługi błędów
 app.use(errorHandler);
 
-// Uruchomienie serwera
-app.listen(port, () => {
+// Usunięcie nagłówków wymuszających HTTPS
+app.use((req, res, next) => {
+  res.removeHeader('Strict-Transport-Security');
+  next();
+});
+
+// Uruchomienie serwera HTTP
+const server = http.createServer(app);
+
+server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
