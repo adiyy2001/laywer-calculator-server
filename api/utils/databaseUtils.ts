@@ -4,7 +4,7 @@ let pool: Pool;
 
 export const initDatabase = async () => {
   pool = await createPool({
-    host: 'https://roundhouse.proxy.rlwy.net/',
+    host: 'roundhouse.proxy.rlwy.net',  
     user: 'root',
     password: 'OXhKSPlISeQkFbHEYhQlXxKPugTZnxia',
     database: 'railway',
