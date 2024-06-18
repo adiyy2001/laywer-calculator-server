@@ -41,3 +41,8 @@ export const saveRatesToDatabase = async (rates: { date: string; wibor3m: string
     connection.release();
   }
 };
+
+export const getAllRates = async () => {
+  const [rows] = await pool.query('SELECT * FROM rates');
+  return rows;
+};
