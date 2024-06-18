@@ -4,13 +4,14 @@ let pool: Pool;
 
 export const initDatabase = async () => {
   pool = await createPool({
-    host: 'mysql',
-    user: 'root',
-    password: 'rootpassword',
-    database: 'wibor',
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'rootpassword',
+    database: process.env.DB_NAME || 'wibor',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
+
   });
 
   await pool.query(`
