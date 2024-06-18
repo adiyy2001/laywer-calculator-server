@@ -22,8 +22,7 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     xdg-utils \
     libx11-xcb1 \
-    netcat-openbsd \  
-    --no-install-recommends \
+    netcat-openbsd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
