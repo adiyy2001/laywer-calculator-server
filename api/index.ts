@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import axios from 'axios';
 import { wiborRouter } from './routes/wiborRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from 'dotenv';
@@ -41,8 +42,16 @@ initDatabase().then(() => {
   // Uruchomienie serwera HTTP
   const server = http.createServer(app);
 
-  server.listen(port, () => {
+  server.listen(port, async () => {
     console.log(`Server is running on http://localhost:${port}`);
+
+    // Odpytanie endpointu po uruchomieniu serwera
+    try {
+      const response = await axios.get('laywer-calculator-server-production.up.railway.app/api/fetch-wibor-rates');
+      console.log('Fetched WIBOR rates:', response.data);
+    } catch (error) {
+      console.error('Failed to fetch WIBOR rates:', error);
+    }
   });
 }).catch(error => {
   console.error('Failed to initialize database:', error);
