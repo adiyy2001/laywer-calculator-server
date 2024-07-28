@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.wiborRouter = void 0;
+const express_1 = require("express");
+const fetchWiborRatesHandler_1 = require("../handler/fetchWiborRatesHandler");
+const getWiborRatesHandler_1 = require("../handler/getWiborRatesHandler");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const exportRatesHandler_1 = require("../handler/exportRatesHandler");
+exports.wiborRouter = (0, express_1.Router)();
+exports.wiborRouter.get('/fetch-wibor-rates', (0, asyncHandler_1.asyncHandler)(fetchWiborRatesHandler_1.fetchWiborRatesHandler));
+exports.wiborRouter.get('/get-wibor-rates', (0, asyncHandler_1.asyncHandler)(getWiborRatesHandler_1.getWiborRatesHandler));
+exports.wiborRouter.get('/export-rates-to-json', (0, asyncHandler_1.asyncHandler)(exportRatesHandler_1.exportRatesHandler));
