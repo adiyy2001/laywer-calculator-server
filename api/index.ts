@@ -13,7 +13,13 @@ config();
 const app = express();
 const port = process.env.PORT || 3001;
 app.use(compression());
-app.use(cors());
+const corsOptions = {
+  origin: "*", // Allow all origins
+  methods: ["GET", "POST", "PUT", "DELETE"], // Allow specific methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allow specific headers
+};
+app.use(cors(corsOptions));
+
 app.use(express.json({ limit: "500mb" }));
 
 initDatabase()
