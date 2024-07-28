@@ -66,8 +66,12 @@ const getLatestRate = () => __awaiter(void 0, void 0, void 0, function* () {
 exports.getLatestRate = getLatestRate;
 const exportRatesToJSON = () => __awaiter(void 0, void 0, void 0, function* () {
     const [rows] = yield pool.query('SELECT * FROM rates');
+    // Usuwanie duplikatów po dacie
+    const uniqueRows = Array.from(new Map(rows.map((item) => [item.date, item])).values());
+    // Sortowanie od najstarszych do najnowszych
+    uniqueRows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const filePath = path_1.default.join(__dirname, 'rates.json');
-    fs_1.default.writeFileSync(filePath, JSON.stringify(rows, null, 2), 'utf-8');
+    fs_1.default.writeFileSync(filePath, JSON.stringify(uniqueRows, null, 2), 'utf-8');
     return filePath;
 });
 exports.exportRatesToJSON = exportRatesToJSON;
