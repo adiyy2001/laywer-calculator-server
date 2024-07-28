@@ -18,6 +18,9 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE"], // Allow specific methods
   allowedHeaders: ["Content-Type", "Authorization"], // Allow specific headers
 };
+
+app.use(express.json({ limit: "1gb" }));
+app.use(express.urlencoded({ limit: "1gb", extended: true }));
 app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "500mb" }));
