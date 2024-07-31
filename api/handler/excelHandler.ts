@@ -30,16 +30,7 @@ export const generateExcel = async (req: Request, res: Response) => {
     wiborData,
     calculationsSummary,
   } = req.body;
-  console.log(
-    !params,
-    !mainClaimResults,
-    !firstClaimResults,
-    !secondClaimResults,
-    !basicCalculations,
-    !wiborData,
-    !calculationsSummary
-  );
-  // Walidacja wymaganych parametrów
+
   if (
     !params ||
     !mainClaimResults ||
@@ -284,11 +275,7 @@ export const generateExcel = async (req: Request, res: Response) => {
     },
     0
   );
-  console.log(
-    interestUpToUnknownWiborDate,
-    interestSecondClaimUpToUnknownWiborDate,
-    lastWiborData
-  );
+
   addClaimRow([
     "Zwrot do Klienta nadpłaconych odsetek",
     (
@@ -491,56 +478,27 @@ export const generateExcel = async (req: Request, res: Response) => {
       "Pozostało",
       "WIBOR 3M",
       "MARŻA+WIBOR 3M",
-      "Odsetki",
-      "Kapitał",
-      "Rata",
-      "Pozostało",
-      "MARŻA+WIBOR 3M",
-      "Odsetki",
-      "Kapitał",
-      "Rata",
-      "Pozostało",
-      "MARŻA",
-      "Odsetki",
-      "Kapitał",
-      "Rata",
-      "Pozostało",
-      "MARŻA+WIBOR 3M STAŁY",
     ]);
     headerRow.font = headerStyle;
     headerRow.fill = headerFill;
 
-    data.forEach((row) => {
+    data.forEach((row: Installment) => {
+      console.log(row.wiborRate);
       const dataRow = sheet.addRow([
         new Date(row.date).toLocaleDateString(),
-        row.interest.toFixed(2),
+        row.interest.toString(), // Zmiana na tekst
         row.principal.toFixed(2),
         row.installment.toFixed(2),
         row.remainingAmount.toFixed(2),
-        row.wiborRate.toFixed(2),
-        row.wiborWithoutMargin.toFixed(2),
-        row.interest.toFixed(2),
-        row.principal.toFixed(2),
-        row.installment.toFixed(2),
-        row.remainingAmount.toFixed(2),
-        row.wiborWithoutMargin.toFixed(2),
-        row.interest.toFixed(2),
-        row.principal.toFixed(2),
-        row.installment.toFixed(2),
-        row.remainingAmount.toFixed(2),
-        row.wiborRate.toFixed(2),
-        row.interest.toFixed(2),
-        row.principal.toFixed(2),
-        row.installment.toFixed(2),
-        row.remainingAmount.toFixed(2),
-        row.wiborWithoutMargin.toFixed(2),
+        row.wiborRate,
+        row.wiborWithoutMargin,
       ]);
       dataRow.eachCell((cell) => {
         cell.style = cellStyle;
       });
     });
   };
-
+  console.log(mainClaimResults);
   // Dodawanie danych do szczegółowej zakładki
   addDetailedData(sheet2, mainClaimResults, "ROSZCZENIE GŁÓWNE");
   addDetailedData(sheet2, firstClaimResults, "I ROSZCZENIE EWENTUALNE");
@@ -560,23 +518,6 @@ export const generateExcel = async (req: Request, res: Response) => {
     { header: "Kapitał", key: "principal", width: 20 },
     { header: "Rata", key: "installment", width: 20 },
     { header: "Pozostało", key: "remaining", width: 20 },
-    { header: "WIBOR 3M", key: "wibor3m", width: 20 },
-    { header: "MARŻA+WIBOR 3M", key: "marginWibor3m", width: 25 },
-    { header: "Odsetki", key: "interest2", width: 20 },
-    { header: "Kapitał", key: "principal2", width: 20 },
-    { header: "Rata", key: "installment2", width: 20 },
-    { header: "Pozostało", key: "remaining2", width: 20 },
-    { header: "MARŻA+WIBOR 3M", key: "marginWibor3m2", width: 25 },
-    { header: "Odsetki", key: "interest3", width: 20 },
-    { header: "Kapitał", key: "principal3", width: 20 },
-    { header: "Rata", key: "installment3", width: 20 },
-    { header: "Pozostało", key: "remaining3", width: 20 },
-    { header: "MARŻA", key: "margin", width: 20 },
-    { header: "Odsetki", key: "interest4", width: 20 },
-    { header: "Kapitał", key: "principal4", width: 20 },
-    { header: "Rata", key: "installment4", width: 20 },
-    { header: "Pozostało", key: "remaining4", width: 20 },
-    { header: "MARŻA+WIBOR 3M STAŁY", key: "fixedMarginWibor3m", width: 25 },
   ];
 
   const buffer = await workbook.xlsx.writeBuffer();
