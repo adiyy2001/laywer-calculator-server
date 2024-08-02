@@ -25,10 +25,10 @@ if (process.env.NODE_ENV === "production") {
   }
 
   // Zapisz poświadczenia do tymczasowego pliku (tylko w razie potrzeby)
-  serviceAccountPath = path.join(dir, "temp-credentials.json");
-  fs.writeFileSync(serviceAccountPath, credentialsJson);
+  // serviceAccountPath = path.join(dir, "temp-credentials.json");
+  // fs.writeFileSync(serviceAccountPath, credentialsJson);
 
-  console.log(`Service Account Path: ${serviceAccountPath}`);
+  // console.log(`Service Account Path: ${serviceAccountPath}`);
 
   if (!fs.existsSync(serviceAccountPath)) {
     throw new Error(`The file at ${serviceAccountPath} does not exist.`);
