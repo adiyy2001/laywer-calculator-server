@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchWiborRatesHandler = void 0;
 const puppeteerUtils_1 = require("../utils/puppeteerUtils");
 const databaseUtils_1 = require("../utils/databaseUtils");
-const defaultDateString = "2024-06-30";
+const defaultDateString = "2010-01-01";
 const fetchWiborRatesHandler = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const startDate = req.body.startDate
         ? new Date(req.body.startDate)
