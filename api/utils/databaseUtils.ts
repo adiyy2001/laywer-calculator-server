@@ -1,68 +1,63 @@
-import { createPool, Pool, RowDataPacket } from 'mysql2/promise';
-import fs from 'fs';
-import path from 'path';
+import { datastore } from "./datastore";
+import path from "path";
+import fs from "fs";
 
-let pool: Pool;
+const kind = "rates";
 
-export const initDatabase = async () => {
-  pool = await createPool({
-    host: 'roundhouse.proxy.rlwy.net',  
-    user: 'root',
-    password: 'OXhKSPlISeQkFbHEYhQlXxKPugTZnxia',
-    database: 'railway',
-    port: 50560,
-    waitForConnections: true,
+// Funkcja do zapisywania danych
+export const saveRatesToDatabase = async (
+  rates: { date: string; wibor3m: string; wibor6m: string }[]
+) => {
+  const entities = rates.map((rate) => {
+    return {
+      key: datastore.key([kind, rate.date]),
+      data: {
+        date: rate.date,
+        wibor3m: rate.wibor3m,
+        wibor6m: rate.wibor6m,
+      },
+    };
   });
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS rates (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      date DATE NOT NULL,
-      wibor3m text,
-      wibor6m text
-    )
-  `);
+  await datastore.save(entities);
 };
 
-export const saveRatesToDatabase = async (rates: { date: string; wibor3m: string; wibor6m: string }[]) => {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    for (const rate of rates) {
-      await connection.query(
-        'INSERT INTO rates (date, wibor3m, wibor6m) VALUES (?, ?, ?)',
-        [rate.date, rate.wibor3m, rate.wibor6m]
-      );
-    }
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-};
-
+// Funkcja do pobierania wszystkich danych
 export const getAllRates = async () => {
-  const [rows] = await pool.query('SELECT * FROM rates');
-  return rows;
+  const query = datastore.createQuery(kind);
+  const [entities] = await datastore.runQuery(query);
+  return entities.map((entity) => ({
+    date: entity.date,
+    wibor3m: entity.wibor3m,
+    wibor6m: entity.wibor6m,
+  }));
 };
 
+// Funkcja do pobierania najnowszego wpisu
 export const getLatestRate = async () => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM rates ORDER BY date DESC LIMIT 1');
-  return rows.length ? rows[0] : null;
+  const query = datastore
+    .createQuery(kind)
+    .order("date", { descending: true })
+    .limit(1);
+  const [entities] = await datastore.runQuery(query);
+  return entities.length ? entities[0] : null;
 };
 
+// Funkcja do eksportowania danych do JSON
 export const exportRatesToJSON = async () => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM rates');
-  
+  const rates = await getAllRates();
+
   // Usuwanie duplikatów po dacie
-  const uniqueRows = Array.from(new Map(rows.map((item) => [item.date, item])).values());
+  const uniqueRates = Array.from(
+    new Map(rates.map((rate) => [rate.date, rate])).values()
+  );
 
   // Sortowanie od najstarszych do najnowszych
-  uniqueRows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  uniqueRates.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
-  const filePath = path.join(__dirname, 'rates.json');
-  fs.writeFileSync(filePath, JSON.stringify(uniqueRows, null, 2), 'utf-8');
+  const filePath = path.join(__dirname, "rates.json");
+  fs.writeFileSync(filePath, JSON.stringify(uniqueRates, null, 2), "utf-8");
   return filePath;
 };
