@@ -155,31 +155,76 @@ export const generateExcel = async (req: Request, res: Response) => {
       cell.style = cellStyle;
     });
   };
+  const lastWiborData = wiborData?.reduce((latest: any, entry: any) => {
+    const entryDate = new Date(entry.date);
+    return entryDate > new Date(latest.date) ? entry : latest;
+  }, wiborData[0]);
+
+  const futureInterestBasicCalc = basicCalculations.reduce(
+    (acc: number, installment: Installment) => {
+      if (lastWiborData && new Date(installment.date) >= lastWiborData) {
+        return acc + installment.interest;
+      }
+      return acc;
+    },
+    0
+  );
+  const wibor3m = basicCalculations.reduce(
+    (acc: number, installment: Installment) => acc + installment.interest,
+    0
+  );
 
   addClaimRow([
-    "Suma odsetek (Basic Loan)",
-    calculationsSummary.totalInterestBasicCalc.toLocaleString("pl-PL", {
+    "Wibor 3M",
+    wibor3m.toLocaleString("pl-PL", {
       style: "currency",
       currency: "PLN",
     }),
   ]);
+  const totalInterestMainClaimCalc = mainClaimResults.reduce(
+    (acc: number, installment: Installment) => {
+      if (
+        new Date(lastWiborData.date) &&
+        new Date(installment.date) <= new Date(lastWiborData.date)
+      ) {
+        return acc + installment.interest;
+      }
+      return acc;
+    },
+    0
+  );
+
   addClaimRow([
     "Zwrot do Klienta zapłaconych odsetek (Main Claim)",
-    calculationsSummary.totalInterestMainClaimCalc.toLocaleString("pl-PL", {
+    totalInterestMainClaimCalc.toLocaleString("pl-PL", {
       style: "currency",
       currency: "PLN",
     }),
   ]);
+
+  const futureReturn = basicCalculations.reduce(
+    (acc: number, installment: Installment) => {
+      if (
+        new Date(lastWiborData.date) &&
+        new Date(installment.date) >= new Date(lastWiborData.date)
+      ) {
+        return acc + installment.interest;
+      }
+      return acc;
+    },
+    0
+  );
+
   addClaimRow([
     "Wartość anulowanych odsetek na przyszłość",
-    (
-      calculationsSummary.futureInterestBasicCalc -
-      calculationsSummary.futureInterestMainClaimCalc
-    ).toLocaleString("pl-PL", { style: "currency", currency: "PLN" }),
+    futureReturn.toLocaleString("pl-PL", {
+      style: "currency",
+      currency: "PLN",
+    }),
   ]);
   addClaimRow([
     "Korzyść Kredytobiorcy",
-    calculationsSummary.borrowerBenefitCalc.toLocaleString("pl-PL", {
+    wibor3m.toLocaleString("pl-PL", {
       style: "currency",
       currency: "PLN",
     }),
@@ -205,9 +250,22 @@ export const generateExcel = async (req: Request, res: Response) => {
       currency: "PLN",
     }),
   ]);
+  const refundInterestFirst =
+    basicCalculations.reduce((acc: number, installment: Installment) => {
+      if (new Date(installment.date) <= new Date(lastWiborData.date)) {
+        return acc + installment.interest;
+      }
+      return acc;
+    }, 0) -
+    firstClaimResults.reduce((acc: number, installment: Installment) => {
+      if (new Date(installment.date) <= new Date(lastWiborData.date)) {
+        return acc + installment.interest;
+      }
+      return acc;
+    }, 0);
   addClaimRow([
     "Zwrot do Klienta nadpłaconych odsetek",
-    calculationsSummary.refundInterestCalc.toLocaleString("pl-PL", {
+    refundInterestFirst.toLocaleString("pl-PL", {
       style: "currency",
       currency: "PLN",
     }),
@@ -250,11 +308,6 @@ export const generateExcel = async (req: Request, res: Response) => {
       currency: "PLN",
     }),
   ]);
-
-  const lastWiborData = wiborData?.reduce((latest: any, entry: any) => {
-    const entryDate = new Date(entry.date);
-    return entryDate > new Date(latest.date) ? entry : latest;
-  }, wiborData[0]);
 
   const interestUpToUnknownWiborDate = basicCalculations.reduce(
     (acc: number, installment: Installment) => {
@@ -483,7 +536,6 @@ export const generateExcel = async (req: Request, res: Response) => {
     headerRow.fill = headerFill;
 
     data.forEach((row: Installment) => {
-      console.log(row.wiborRate);
       const dataRow = sheet.addRow([
         new Date(row.date).toLocaleDateString(),
         row.interest.toString(), // Zmiana na tekst
@@ -498,7 +550,6 @@ export const generateExcel = async (req: Request, res: Response) => {
       });
     });
   };
-  console.log(mainClaimResults);
   // Dodawanie danych do szczegółowej zakładki
   addDetailedData(sheet2, mainClaimResults, "ROSZCZENIE GŁÓWNE");
   addDetailedData(sheet2, firstClaimResults, "I ROSZCZENIE EWENTUALNE");
