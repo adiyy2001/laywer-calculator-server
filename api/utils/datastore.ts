@@ -13,7 +13,7 @@ console.log(`Resolved dir: ${dir}`);
 // Ścieżka do pliku credentials.json (tylko dla development)
 const devCredentialsPath = path.join(dir, "credentials.json");
 
-let serviceAccountPath: string;
+let serviceAccountPath: string = "";
 
 if (process.env.NODE_ENV === "production") {
   // Produkcja: użyj zmiennej środowiskowej
@@ -25,9 +25,6 @@ if (process.env.NODE_ENV === "production") {
   }
 
   // Zapisz poświadczenia do tymczasowego pliku (tylko w razie potrzeby)
-  serviceAccountPath = path.join(dir, "temp-credentials.json");
-  fs.writeFileSync(serviceAccountPath, credentialsJson);
-
   console.log(`Service Account Path: ${serviceAccountPath}`);
 
   if (!fs.existsSync(serviceAccountPath)) {
