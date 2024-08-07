@@ -29,8 +29,9 @@ export const generateExcel = async (req: Request, res: Response) => {
     basicCalculations,
     wiborData,
     calculationsSummary,
+    signDateWibor,
   } = req.body;
-
+  console.log(signDateWibor);
   if (
     !params ||
     !mainClaimResults ||
@@ -137,9 +138,22 @@ export const generateExcel = async (req: Request, res: Response) => {
     ],
     cellStyle
   );
+  const targetDateFormatted = new Date(startDate).toISOString().split("T")[0];
+
+  // Sprawdź czy wiborRates zawiera element z daną datą i pobierz wibor3m
+  const wibor3mValue = wiborData.find((entry: any) => {
+    console.log(
+      entry.date === targetDateFormatted,
+      targetDateFormatted,
+      entry.date
+    );
+    return entry.date === targetDateFormatted;
+  })?.wibor3m;
+  console.log(wibor3mValue);
+  // console.log(new Date(startDate).toISOString().split("T")[0]);
   addStyledRow(
     sheet1,
-    ["WIBOR 3M w dniu sporządzenia umowy", `${params.currentRate}%`],
+    ["WIBOR 3M w dniu sporządzenia umowy", `${wibor3mValue}%`],
     cellStyle
   );
 
