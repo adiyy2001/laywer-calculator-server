@@ -543,8 +543,8 @@ export const generateExcel = async (req: Request, res: Response) => {
       "Kapitał",
       "Rata",
       "Pozostało",
-      "WIBOR 3M",
       "MARŻA+WIBOR 3M",
+      "WIBOR 3M",
     ]);
     headerRow.font = headerStyle;
     headerRow.fill = headerFill;
