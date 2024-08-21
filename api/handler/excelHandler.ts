@@ -390,7 +390,11 @@ export const generateExcel = async (req: Request, res: Response) => {
 
   addClaimRow([
     "Korzyść Kredytobiorcy",
-    refundInterestCalc.toLocaleString("pl-PL", {
+    (
+      interestUpToUnknownWiborDate -
+      interestSecondClaimUpToUnknownWiborDate +
+      futureInterestDifferenceCalc
+    ).toLocaleString("pl-PL", {
       style: "currency",
       currency: "PLN",
     }),
